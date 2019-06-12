@@ -1,0 +1,87 @@
+ try
+
+        {
+
+            socket_set_nonblock($Socket); 
+
+            if($Socket = @fsockopen ($ip, $port, $errno, $errstr, 1))
+
+            {
+
+                socket_set_timeout($Socket,2);
+
+            }
+
+            else return;
+
+        }
+
+        catch (Exception $e)
+
+        {
+
+        }
+
+        if(!$Socket) return;
+
+ $rsa = new Crypt_RSA_XML();
+
+        $rsa->loadKeyfromXML(file_get_contents(ROOT_PATH.'/keys/public.xml'));
+
+        $rsa->setEncryptionMode(CRYPT_RSA_ENCRYPTION_PKCS1);
+
+        $num = count($args);
+
+        $args = $args;
+
+        $sendline= $functionName;
+
+        for($i=0; $i<$num; $i++) $sendline .= "\x13\x00".$args[$i];
+
+        $pos = 0;
+
+        $data;
+
+        while($pos <strlen($sendline))
+
+        {
+
+            if(strlen($sendline)- $pos >256)
+
+            {
+
+                $data.= $rsa->encrypt(substr($sendline, $pos, 256));
+
+                $pos = $pos+256;
+
+            }
+
+            else
+
+            {
+
+                $data.= $rsa->encrypt(substr($sendline, $pos),128);
+
+                $pos = strlen($sendline);             
+
+            }
+
+        }
+
+        fputs($Socket,base64_encode($data),strlen(base64_encode($data)));
+
+        while (!feof($Socket)) {
+
+        $result .= fgets($Socket, 8192);
+
+        }
+
+        $str = bzdecompress($result);
+
+        $out=base64_decode($str);
+
+        $doc = json_decode( $out );
+
+        return $doc;
+
+    }
